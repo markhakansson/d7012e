@@ -55,13 +55,15 @@ parse = fst . buildexpr
 
 isSignedDigit :: String -> Bool
 isSignedDigit (x:xs)
-    | x == '-' = True
-    | otherwise = False
+    | x == '-' && isDigit (head xs) = True
+    | isDigit (head xs) = False
+    | otherwise = error "illegal symbol" 
 
 unparse :: EXPR -> String
 unparse (Const n) = show n
 unparse (Var s) = s
 unparse (Op oper e1 e2) = "(" ++ unparse e1 ++ oper ++ unparse e2 ++ ")"
+unparse (App func expr) = func ++ "(" ++ unparse expr ++ ")"
 
 eval :: EXPR -> [(String,Float)] -> Float
 eval (Const n) _ = fromIntegral n
@@ -86,7 +88,9 @@ diff v (Op "*" e1 e2) = Op "+" (Op "*" (diff v e1) e2) (Op "*" e1 (diff v e2))
 diff v (Op "/" e1 e2) = Op "/" (Op "-" (Op "*" (diff v e1) e1) (Op "*" e1 (diff v e2))) (Op "*" e2 e2)
 diff v (App "sin" expr) = Op "*" (diff v expr) (App "cos" expr)
 diff v (App "cos" expr) = Op "*" (parse "-1") (Op "*" (diff v expr) (App "sin" expr))
-diff _ _ = error "can not compute the derivative"
+diff v (App "log" expr) = Op "/" (diff v expr) expr
+diff v (App "exp" expr) = Op "*" (diff v expr) (App "exp" expr)
+diff _ _ = error "can not compute the derivative" 
 
 simplify :: EXPR -> EXPR
 simplify (Const n) = Const n
@@ -94,13 +98,14 @@ simplify (Var id) = Var id
 simplify (Op oper left right) =
   let (lefts,rights) = (simplify left, simplify right) in
     case (oper, lefts, rights) of
-      ("+",e,Const 0) -> e
-      ("+",Const 0,e) -> e
-      ("*",e,Const 0) -> Const 0
-      ("*",Const 0,e) -> Const 0
-      ("*",e,Const 1) -> e
-      ("*",Const 1,e) -> e
-      ("-",e,Const 0) -> e
-      ("/",e,Const 1) -> e
-      ("-",le,re)     -> if left==right then Const 0 else Op "-" le re
-      (op,le,re)      -> Op op le re
+      ("+", e, Const 0) -> e
+      ("+", Const 0, e) -> e
+      ("*", e, Const 0) -> Const 0
+      ("*", Const 0, e) -> Const 0
+      ("*", e, Const 1) -> e
+      ("*", Const 1, e) -> e
+      ("-", e, Const 0) -> e
+      ("/", e, Const 1) -> e
+      ("-", le, re)     -> if left==right then Const 0 else Op "-" le re
+      (op, le, re)      -> Op op le re
+simplify (App func expr) = (App func expr)
