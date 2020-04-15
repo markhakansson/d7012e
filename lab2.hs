@@ -50,7 +50,13 @@ parse = fst . buildexpr
       | isLetter x = case buildvar (x:xs) of
                        (Var s, '(':zs) -> let (e,ws)=buildfactor ('(':zs) in (App s e,ws)
                        p -> p
+      | isSignedDigit (x:xs) = buildnumber (x:xs)
       | otherwise = error "illegal symbol"
+
+isSignedDigit :: String -> Bool
+isSignedDigit (x:xs)
+    | x == '-' = True
+    | otherwise = False
 
 unparse :: EXPR -> String
 unparse (Const n) = show n
@@ -76,11 +82,10 @@ diff (Var id) (Var id2)
   | otherwise = Const 0
 diff v (Op "+" e1 e2) = Op "+" (diff v e1) (diff v e2)
 diff v (Op "-" e1 e2) = Op "-" (diff v e1) (diff v e2)
-diff v (Op "*" e1 e2) =
-  Op "+" (Op "*" (diff v e1) e2) (Op "*" e1 (diff v e2))
-diff v (Op "/" e1 e2) =
-  Op "/" (Op "-" (Op "*" (diff v e1) e1) (Op "*" e1 (diff v e2))) (Op "*" e2 e2)
-diff v (App "sin" expr) = cos (diff expr)
+diff v (Op "*" e1 e2) = Op "+" (Op "*" (diff v e1) e2) (Op "*" e1 (diff v e2))
+diff v (Op "/" e1 e2) = Op "/" (Op "-" (Op "*" (diff v e1) e1) (Op "*" e1 (diff v e2))) (Op "*" e2 e2)
+diff v (App "sin" expr) = Op "*" (diff v expr) (App "cos" expr)
+diff v (App "cos" expr) = Op "*" (parse "-1") (Op "*" (diff v expr) (App "sin" expr))
 diff _ _ = error "can not compute the derivative"
 
 simplify :: EXPR -> EXPR
