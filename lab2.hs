@@ -109,3 +109,6 @@ simplify (Op oper left right) =
       ("-", le, re)     -> if left==right then Const 0 else Op "-" le re
       (op, le, re)      -> Op op le re
 simplify (App func expr) = (App func expr)
+
+mkfun :: (EXPR, EXPR) -> (Float -> Float)
+mkfun (e1, e2) = \x -> eval e1 [(unparse e2, x)]
