@@ -112,3 +112,21 @@ simplify (App func expr) = (App func expr)
 
 mkfun :: (EXPR, EXPR) -> (Float -> Float)
 mkfun (e1, e2) = \x -> eval e1 [(unparse e2, x)]
+
+findzero ::  String -> String -> Float -> Float
+findzero var func val = 
+    let f = mkfun (parse func, parse var)
+        f' = mkfun ((diff (parse var) (parse func), parse var))
+    in newtonRaphson f f' val 
+
+newtonRaphson :: (Float -> Float) -> (Float -> Float) -> Float -> Float
+newtonRaphson f f' x 
+    | x_i - x_i_1 < 0.0001 = x_i_1   
+    | otherwise = newtonRaphson f f' x_i_1 
+  where
+      x_i = newtonRaphsonNext f f' x
+      x_i_1 = newtonRaphsonNext f f' x_i
+
+newtonRaphsonNext :: (Float -> Float) -> (Float -> Float) -> Float -> Float
+newtonRaphsonNext f f' x = x - (f x)/(f' x)
+
