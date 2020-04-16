@@ -117,8 +117,10 @@ findzero ::  String -> String -> Float -> Float
 findzero var func val = 
     let f = mkfun (parse func, parse var)
         f' = mkfun ((diff (parse var) (parse func), parse var))
-    in newtonRaphson f f' val 
+    in newtonRaphson f f' val
 
+-- given a function, its derivate and a value x0 computes f(x) = 0 
+-- using Newton Raphsons method until delta x is less than 0.0001
 newtonRaphson :: (Float -> Float) -> (Float -> Float) -> Float -> Float
 newtonRaphson f f' x 
     | x_i - x_i_1 < 0.0001 = x_i_1   
@@ -127,6 +129,7 @@ newtonRaphson f f' x
       x_i = newtonRaphsonNext f f' x
       x_i_1 = newtonRaphsonNext f f' x_i
 
+-- given a function, its derivate and a value x_i - returns the next value x_(i+1)
 newtonRaphsonNext :: (Float -> Float) -> (Float -> Float) -> Float -> Float
 newtonRaphsonNext f f' x = x - (f x)/(f' x)
 
