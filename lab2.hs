@@ -114,10 +114,10 @@ mkfun :: (EXPR, EXPR) -> (Float -> Float)
 mkfun (e1, e2) = \x -> eval e1 [(unparse e2, x)]
 
 findzero ::  String -> String -> Float -> Float
-findzero var func val = 
+findzero var func x0 = 
     let f = mkfun (parse func, parse var)
         f' = mkfun ((diff (parse var) (parse func), parse var))
-    in newtonRaphson f f' val
+    in newtonRaphson f f' x0
 
 -- given a function, its derivate and a value x0 computes f(x) = 0 
 -- using Newton Raphsons method until delta x is less than 0.0001
@@ -133,3 +133,16 @@ newtonRaphson f f' x
 newtonRaphsonNext :: (Float -> Float) -> (Float -> Float) -> Float -> Float
 newtonRaphsonNext f f' x = x - (f x)/(f' x)
 
+main = do
+    putStrLn "Lab 2.2"
+    putStrLn "unparse (simplify (diff (Var \"x\") (parse \"exp(sin(2*x))\"))) ="
+    putStrLn (unparse (simplify (diff (Var "x") (parse "exp(sin(2*x))"))))
+    
+    putStrLn "\nLab 2.3"
+    putStrLn "let f = mkfun (parse \"x*x+2\", Var \"x\")"
+    let f = (mkfun (parse "x*x+2", Var "x"))
+    putStrLn ("f 3.0 = " ++ (show (f 3.0)))
+
+    putStrLn "\nLab2.4"
+    putStrLn ("findzero \"x\" \"x*x*x+x-1\" 1.0 = " ++ show (findzero "x" "x*x*x+x-1" 1.0))
+    putStrLn ("findzero \"y\" \"cos(y)*sin(y)\" 2.0" ++ show (findzero "y" "cos(y)*sin(y)" 4.0))
