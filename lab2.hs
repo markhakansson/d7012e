@@ -145,4 +145,4 @@ main = do
 
     putStrLn "\nLab2.4"
     putStrLn ("findzero \"x\" \"x*x*x+x-1\" 1.0 = " ++ show (findzero "x" "x*x*x+x-1" 1.0))
-    putStrLn ("findzero \"y\" \"cos(y)*sin(y)\" 2.0" ++ show (findzero "y" "cos(y)*sin(y)" 4.0))
+    putStrLn ("findzero \"y\" \"cos(y)*sin(y)\" 2.0 = " ++ show (findzero "y" "cos(y)*sin(y)" 2.0))
