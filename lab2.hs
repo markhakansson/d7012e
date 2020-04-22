@@ -1,5 +1,5 @@
 -- Code to Haskell lab assignment 2 in the course D7012E by Håkan Jonsson
-
+-- modified by Mark Håkansson - marhak-6
 import Data.Char
 
 data EXPR = Const Int
@@ -108,7 +108,7 @@ simplify (Op oper left right) =
       ("/", e, Const 1) -> e
       ("-", le, re)     -> if left==right then Const 0 else Op "-" le re
       (op, le, re)      -> Op op le re
-simplify (App func expr) = (App func expr)
+simplify (App func expr) = (App func (simplify expr))
 
 mkfun :: (EXPR, EXPR) -> (Float -> Float)
 mkfun (e1, e2) = \x -> eval e1 [(unparse e2, x)]
