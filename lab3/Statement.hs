@@ -16,7 +16,7 @@ data Statement =
     Write Expr.T
     deriving Show
 
-assignment = word #- accept ":=" # Expr.parse #- require ";" >-> buildAss
+assignment = spaces -# word #- accept ":=" # Expr.parse #- require ";" >-> buildAss
 buildAss (v, e) = Assignment v e
 
 parseSkip = (spaces # accept "skip") #- require ";" >-> buildSkip
@@ -39,10 +39,10 @@ parseWhile =
     ((spaces # require "do") -# parse) >-> buildWhile
 buildWhile (e, s) = While e s
 
-parseRead = ((spaces # accept "read")) -# word >-> buildRead
+parseRead = ((spaces # accept "read")) -# word #- require ";" >-> buildRead
 buildRead var = Read var
 
-parseWrite = ((spaces # accept "read")) -# Expr.parse >-> buildWrite
+parseWrite = ((spaces # accept "write")) -# Expr.parse #- require ";" >-> buildWrite
 buildWrite e = Write e
 
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
@@ -66,6 +66,15 @@ exec (Read var: stmts) dict input = exec stmts updatedDict updatedInput
 exec (Write expr: stmts) dict input = exec stmts dict updatedInput
     where updatedInput = (Expr.value expr dict) : input
 
+shw :: Statement -> String
+shw (Assignment var expr) = var ++ (Expr.toString expr) ++ ";\n"
+shw (Skip) = "skip;\n"
+shw (Begin stmts) = "begin\n"--  ++   ++ "end\n"
+shw (If cond thenStmt elseStmt) = "if " ++ (Expr.toString cond) ++ " then\n" ++ shw thenStmt ++ "else\n" ++ shw elseStmt
+shw (While cond doStmt) = "while " ++ (Expr.toString cond) ++ "do\n" ++ shw doStmt
+shw (Read var) = "read " ++ var
+shw (Write expr) = "write " ++ (Expr.toString expr)
+
 instance Parse Statement where
   parse = 
     assignment !
@@ -75,4 +84,4 @@ instance Parse Statement where
     parseWhile !
     parseRead !
     parseWrite
-  toString = error "Statement.toString not implemented"
+  toString = shw
