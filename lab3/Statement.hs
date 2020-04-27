@@ -46,11 +46,25 @@ parseWrite = ((spaces # accept "read")) -# Expr.parse >-> buildWrite
 buildWrite e = Write e
 
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
+exec (Assignment var expr: stmts) dict input = exec stmts updatedDict input
+    where updatedDict = Dictionary.insert (var, (Expr.value expr dict)) dict
+exec (Skip: stmts) dict input = exec stmts dict input
+exec (Begin innerStmts: outerStmts) dict input = 
+    (exec innerStmts dict input) ++ (exec outerStmts dict input)
 exec (If cond thenStmts elseStmts: stmts) dict input = 
     if (Expr.value cond dict)>0 
     then exec (thenStmts: stmts) dict input
     else exec (elseStmts: stmts) dict input
---exec (Read var) dict input =
+exec (While cond doStmts: stmts) dict input =
+    if (Expr.value cond dict)>0
+    then exec (doStmts: (While cond doStmts: stmts)) dict input
+    else exec stmts dict input
+exec (Read var: stmts) dict input = exec stmts updatedDict updatedInput
+    where 
+        updatedDict = Dictionary.insert (var, head input) dict
+        updatedInput = tail input
+exec (Write expr: stmts) dict input = exec stmts dict updatedInput
+    where updatedInput = (Expr.value expr dict) : input
 
 instance Parse Statement where
   parse = 
