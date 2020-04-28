@@ -48,32 +48,48 @@ buildWrite e = Write e
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
 exec (Assignment var expr: stmts) dict input = exec stmts updatedDict input
     where updatedDict = Dictionary.insert (var, (Expr.value expr dict)) dict
+
 exec (Skip: stmts) dict input = exec stmts dict input
+
 exec (Begin innerStmts: outerStmts) dict input = 
-    (exec innerStmts dict input) ++ (exec outerStmts dict input)
+    exec (innerStmts ++ outerStmts) dict input
+    
 exec (If cond thenStmts elseStmts: stmts) dict input = 
-    if (Expr.value cond dict)>0 
-    then exec (thenStmts: stmts) dict input
-    else exec (elseStmts: stmts) dict input
-exec (While cond doStmts: stmts) dict input =
-    if (Expr.value cond dict)>0
-    then exec (doStmts: (While cond doStmts: stmts)) dict input
-    else exec stmts dict input
-exec (Read var: stmts) dict input = exec stmts updatedDict updatedInput
+    if (Expr.value cond dict) > 0 then 
+        exec (thenStmts : stmts) dict input
+    else
+         exec (elseStmts : stmts) dict input
+
+exec (While cond doStmts : stmts) dict input =
+    if (Expr.value cond dict) > 0 then 
+        exec (doStmts : While cond doStmts : stmts) dict input
+    else 
+        exec stmts dict input
+
+exec (Read var : stmts) dict input = exec stmts updatedDict updatedInput
     where 
         updatedDict = Dictionary.insert (var, head input) dict
         updatedInput = tail input
-exec (Write expr: stmts) dict input = exec stmts dict updatedInput
-    where updatedInput = (Expr.value expr dict) : input
 
+exec (Write expr : stmts) dict input = (Expr.value expr dict) : exec stmts dict input
+
+exec _ _ _ = []
+
+-- Converts Statements to Strings
 shw :: Statement -> String
-shw (Assignment var expr) = var ++ (Expr.toString expr) ++ ";\n"
+shw (Assignment var expr) = var ++ " := " ++ (Expr.toString expr) ++ ";\n"
 shw (Skip) = "skip;\n"
-shw (Begin stmts) = "begin\n"--  ++   ++ "end\n"
+shw (Begin stmts) = "begin\n"  ++ (foldl (++) "" (map shw stmts)) ++ "end\n"
 shw (If cond thenStmt elseStmt) = "if " ++ (Expr.toString cond) ++ " then\n" ++ shw thenStmt ++ "else\n" ++ shw elseStmt
-shw (While cond doStmt) = "while " ++ (Expr.toString cond) ++ "do\n" ++ shw doStmt
-shw (Read var) = "read " ++ var
-shw (Write expr) = "write " ++ (Expr.toString expr)
+shw (While cond doStmts) = "while " ++ (Expr.toString cond) ++ " do\n" ++ shw doStmts
+shw (Read var) = "read " ++ var ++ ";\n"
+shw (Write expr) = "write " ++ (Expr.toString expr) ++ ";\n"
+
+-- Create i number of tabs (for indentation)
+tab :: Integer -> String
+tab 0 = ""
+tab 1 = "\t"
+tab i = "\t" ++ tab (i-1)
 
 instance Parse Statement where
   parse = 
