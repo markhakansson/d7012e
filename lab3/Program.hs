@@ -10,6 +10,7 @@ instance Parse T where
   parse = iter Statement.parse >-> Program
   toString = toStringHelper
 
+-- Takes a program and then converts all its Statements to Strings
 toStringHelper :: T -> String
 toStringHelper (Program stmts) = foldl (++) "" (map Statement.toString stmts)
              

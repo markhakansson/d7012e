@@ -13,7 +13,8 @@ data Statement =
     If Expr.T Statement Statement |
     While Expr.T Statement |
     Read String |
-    Write Expr.T
+    Write Expr.T |
+    Repeat Statement Expr.T
     deriving Show
 
 assignment = spaces -# word #- accept ":=" # Expr.parse #- require ";" >-> buildAss
@@ -45,6 +46,13 @@ buildRead var = Read var
 parseWrite = ((spaces # accept "write")) -# Expr.parse #- require ";" >-> buildWrite
 buildWrite e = Write e
 
+parseRepeat = 
+    ((spaces # accept "repeat")) -# parse #
+    ((spaces # require "until") -# 
+    (spaces -# Expr.parse) #- 
+    (spaces # require ";")) >-> buildRepeat
+buildRepeat (s, e) = Repeat s e
+
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
 exec (Assignment var expr: stmts) dict input = exec stmts updatedDict input
     where updatedDict = Dictionary.insert (var, (Expr.value expr dict)) dict
@@ -73,20 +81,35 @@ exec (Read var : stmts) dict input = exec stmts updatedDict updatedInput
 
 exec (Write expr : stmts) dict input = (Expr.value expr dict) : exec stmts dict input
 
+exec (Repeat stmt cond : stmts) dict input =
+    if (Expr.value cond dict) < 0 then
+        exec (stmt : Repeat stmt cond : stmts) dict input
+    else
+        exec (stmt : stmts) dict input
+
 exec _ _ _ = []
 
 -- Converts Statements to Strings
 shw :: Integer -> Statement -> String
-shw i (Assignment var expr) = tab i ++ var ++ " := " ++ (Expr.toString expr) ++ ";\n"
-shw i (Skip) = tab i ++ "skip;\n"
-shw i (Begin stmts) = tab i ++ "begin\n"  ++ (foldl (++) "" (map (shw (i+1)) stmts)) ++ tab i ++ "end\n"
+shw i (Assignment var expr) = 
+    tab i ++ var ++ " := " ++ (Expr.toString expr) ++ ";\n"
+shw i (Skip) = 
+    tab i ++ "skip;\n"
+shw i (Begin stmts) = 
+    tab i ++ "begin\n"  ++ (foldl (++) "" (map (shw (i+1)) stmts)) ++ tab i ++ "end\n"
 shw i (If cond thenStmt elseStmt) = 
-    tab i ++ "if " ++ (Expr.toString cond) ++ " then\n" ++ shw (i+1) thenStmt ++ tab i ++ "else\n" ++ shw (i+1) elseStmt
-shw i (While cond doStmts) = tab i ++ "while " ++ (Expr.toString cond) ++ " do\n" ++ shw (i+1) doStmts
-shw i (Read var) = tab i ++ "read " ++ var ++ ";\n"
-shw i (Write expr) = tab i ++ "write " ++ (Expr.toString expr) ++ ";\n"
+    tab i ++ "if " ++ (Expr.toString cond) ++ " then\n" ++ 
+    shw (i+1) thenStmt ++ tab i ++ "else\n" ++ shw (i+1) elseStmt
+shw i (While cond doStmts) = 
+    tab i ++ "while " ++ (Expr.toString cond) ++ " do\n" ++ shw (i+1) doStmts
+shw i (Read var) = 
+    tab i ++ "read " ++ var ++ ";\n"
+shw i (Write expr) = 
+    tab i ++ "write " ++ (Expr.toString expr) ++ ";\n"
+shw i (Repeat stmt expr) = 
+    tab i ++ "repeat\n" ++ shw(i+1) stmt ++ tab i ++ "until " ++ (Expr.toString expr) ++ ";\n"
 
--- Create i number of tabs (for indentation)
+-- Create i number of tabs (here tab = 4 spaces)
 tab :: Integer -> String
 tab 0 = ""
 tab 1 = "    "
@@ -100,5 +123,6 @@ instance Parse Statement where
     parseIf !
     parseWhile !
     parseRead !
-    parseWrite
+    parseWrite !
+    parseRepeat
   toString = shw 0
