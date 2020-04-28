@@ -53,7 +53,7 @@ exec (Skip: stmts) dict input = exec stmts dict input
 
 exec (Begin innerStmts: outerStmts) dict input = 
     exec (innerStmts ++ outerStmts) dict input
-    
+
 exec (If cond thenStmts elseStmts: stmts) dict input = 
     if (Expr.value cond dict) > 0 then 
         exec (thenStmts : stmts) dict input
@@ -76,20 +76,21 @@ exec (Write expr : stmts) dict input = (Expr.value expr dict) : exec stmts dict 
 exec _ _ _ = []
 
 -- Converts Statements to Strings
-shw :: Statement -> String
-shw (Assignment var expr) = var ++ " := " ++ (Expr.toString expr) ++ ";\n"
-shw (Skip) = "skip;\n"
-shw (Begin stmts) = "begin\n"  ++ (foldl (++) "" (map shw stmts)) ++ "end\n"
-shw (If cond thenStmt elseStmt) = "if " ++ (Expr.toString cond) ++ " then\n" ++ shw thenStmt ++ "else\n" ++ shw elseStmt
-shw (While cond doStmts) = "while " ++ (Expr.toString cond) ++ " do\n" ++ shw doStmts
-shw (Read var) = "read " ++ var ++ ";\n"
-shw (Write expr) = "write " ++ (Expr.toString expr) ++ ";\n"
+shw :: Integer -> Statement -> String
+shw i (Assignment var expr) = tab i ++ var ++ " := " ++ (Expr.toString expr) ++ ";\n"
+shw i (Skip) = tab i ++ "skip;\n"
+shw i (Begin stmts) = tab i ++ "begin\n"  ++ (foldl (++) "" (map (shw (i+1)) stmts)) ++ tab i ++ "end\n"
+shw i (If cond thenStmt elseStmt) = 
+    tab i ++ "if " ++ (Expr.toString cond) ++ " then\n" ++ shw (i+1) thenStmt ++ tab i ++ "else\n" ++ shw (i+1) elseStmt
+shw i (While cond doStmts) = tab i ++ "while " ++ (Expr.toString cond) ++ " do\n" ++ shw (i+1) doStmts
+shw i (Read var) = tab i ++ "read " ++ var ++ ";\n"
+shw i (Write expr) = tab i ++ "write " ++ (Expr.toString expr) ++ ";\n"
 
 -- Create i number of tabs (for indentation)
 tab :: Integer -> String
 tab 0 = ""
-tab 1 = "\t"
-tab i = "\t" ++ tab (i-1)
+tab 1 = "    "
+tab i = "    " ++ tab (i-1)
 
 instance Parse Statement where
   parse = 
@@ -100,4 +101,4 @@ instance Parse Statement where
     parseWhile !
     parseRead !
     parseWrite
-  toString = shw
+  toString = shw 0
