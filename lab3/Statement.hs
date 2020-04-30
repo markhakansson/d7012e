@@ -82,11 +82,7 @@ exec (Read var : stmts) dict input = exec stmts updatedDict updatedInput
 exec (Write expr : stmts) dict input = (Expr.value expr dict) : exec stmts dict input
 
 exec (Repeat stmt cond : stmts) dict input =
-    if (Expr.value cond dict) < 0 then
-        exec (stmt : Repeat stmt cond : stmts) dict input
-    else
-        exec (stmt : stmts) dict input
-
+    exec (stmt : if (Expr.value cond dict) < 0 then Repeat stmt cond: stmts else stmts) dict input
 exec _ _ _ = []
 
 -- Converts Statements to Strings

@@ -78,7 +78,8 @@ value (Var s) dict = case Dictionary.lookup s dict of
 value (Add e1 e2) dict = value e1 dict + value e2 dict
 value (Sub e1 e2) dict = value e1 dict - value e2 dict
 value (Mul e1 e2) dict = value e1 dict * value e2 dict
-value (Div e1 e2) dict = value e1 dict `div` value e2 dict 
+value (Div e1 e2) dict = if denom > 0 then value e1 dict `div` denom else error "division by 0"
+        where denom = value e2 dict 
 
 instance Parse Expr where
     parse = expr
