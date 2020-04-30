@@ -2,7 +2,7 @@
 module TestProgram where
 
 import Program
-p, p1 :: Program.T
+p, p1, pr :: Program.T
 p = fromString  ("\
 \read k;\
 \read n;\
@@ -33,8 +33,22 @@ p1 = fromString  ("\
 \  end\
 \write s;")
 
+pr = fromString ("\
+\read k;\
+\write k;\
+\repeat\
+\ begin\
+\ k := k + 1;\
+\ write k;\
+\ end\
+\until k;")
+
 sp = putStr (toString p)
+
+spr = putStr (toString pr)
 
 rp = Program.exec p [3,16]
 
 rp1 = Program.exec p1 [1024, 2]
+
+rpr k = Program.exec pr [k]
