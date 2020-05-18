@@ -13,7 +13,8 @@
 %
 % --Move--
 % Works like this:
-% State is the next state if Condition is true. To reach the next State, a Move is done.
+% State is the next state if the state Condition is true. To reach the next State, 
+% an Action is done.
 % Take actions also check that the inventory is not full (i.e. more than 2 items)
 
 % Move to room 2 (from room1)
