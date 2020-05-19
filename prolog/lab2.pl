@@ -20,19 +20,21 @@ take(Num, [X|XS], L) :-
 % Starting from the last element and its index,
 % generate a tuple (ListLength, LastIndex, Subset)
 % for all subsets possible starting at last index.
-subsetsWithLastIndex([X], Index, [(X, Index, [X])]).
-subsetsWithLastIndex([X|XS], Index, L) :-
+subsetsWithLastIndex([X], EndIndex, [(X, EndIndex, EndIndex, [X])]).
+subsetsWithLastIndex([X|XS], EndIndex, L) :-
     sum([X|XS], Size),
-    append([(Size, Index, [X|XS])], L1, L),
-    subsetsWithLastIndex(XS, Index, L1).
+    length([X|XS], Length),
+    StartIndex is EndIndex - (Length - 1),
+    append([(Size, StartIndex, EndIndex, [X|XS])], L1, L),
+    subsetsWithLastIndex(XS, EndIndex, L1).
 
 % Generates all possible subsets from a list
 % together with the sublist length and ending index.
-generateSubsetsWithIndex([X], _, [(X, 0,[X])]).
-generateSubsetsWithIndex(XS, Index, L) :-
-    subsetsWithLastIndex(XS, Index, L1),
+generateSubsetsWithIndex([X], _, [(X, 0, 0,[X])]).
+generateSubsetsWithIndex(XS, EndIndex, L) :-
+    subsetsWithLastIndex(XS, EndIndex, L1),
     init(XS, XS1),
-    PrevIndex is Index - 1,
+    PrevIndex is EndIndex - 1,
     generateSubsetsWithIndex(XS1, PrevIndex, L2),
     append(L1,L2,L).
 
@@ -47,3 +49,35 @@ smallestKSets(Num, List, Return) :-
     take(Num, SortedSublists, Return),
     generateSubsets(List, Sublists),
     sort(Sublists, SortedSublists).
+
+formatTuple((Size, StartIndex, EndIndex, List)) :-
+    write(Size),
+    write("\t"),
+    write(StartIndex),
+    write("\t"),
+    write(EndIndex),
+    write("\t"),
+    write(List),
+    nl.
+
+printHeader :-
+    write("size\ti\tj\tsublist\n").
+
+% gl getting format to work
+formatTuple2((Size, StartIndex, EndIndex, List)) :-
+    format('~d~2t~| ~d~2t~10| ~d~2t~20| ~w~2t~30|~n', [Size, StartIndex, EndIndex, List]).
+
+formatTuples([]).
+formatTuples([X]) :- formatTuple(X).
+formatTuples([X|XS]) :-
+    formatTuple(X),
+    formatTuples(XS).
+
+program(K, List) :-
+    printHeader,
+    smallestKSets(K, List, Return),
+    formatTuples(Return).
+
+testProgram2 :-
+    program(6, [24,-11,-34,42,-24,7,-19,21]).
+
