@@ -84,3 +84,5 @@ solveR(State, N, [Action|Trace]) :-
     action(State, NextState, Action),
     solveR(NextState, N - 1, Trace).
 
+test(N, T) :-
+    solveR(state(r1,r1,r2,r3), N, T).
