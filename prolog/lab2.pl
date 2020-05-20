@@ -63,16 +63,13 @@ formatTuple((Size, StartIndex, EndIndex, List)) :-
 printHeader :-
     write("size\ti\tj\tsublist\n").
 
-% gl getting format to work
-formatTuple2((Size, StartIndex, EndIndex, List)) :-
-    format('~d~2t~| ~d~2t~10| ~d~2t~20| ~w~2t~30|~n', [Size, StartIndex, EndIndex, List]).
-
 formatTuples([]).
 formatTuples([X]) :- formatTuple(X).
 formatTuples([X|XS]) :-
     formatTuple(X),
     formatTuples(XS).
 
+% Enter a K and the list
 program(K, List) :-
     printHeader,
     smallestKSets(K, List, Return),
@@ -82,4 +79,5 @@ testProgram2 :-
     program(6, [24,-11,-34,42,-24,7,-19,21]).
 
 testProgram3 :-
-    program(8, [3,2,-4,3,2,-5,-2,2,3,-3,2,-5,6,-2,2,3]). 
+    program(8, [3,2,-4,3,2,-5,-2,2,3,-3,2,-5,6,-2,2,3]).
+
