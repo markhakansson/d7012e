@@ -1,4 +1,5 @@
 % Smallest k sets
+% Mark Hakansson
 
 % Haskell-helper functions
 % Removes the last item in list (like init in haskell)
