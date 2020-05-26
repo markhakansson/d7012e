@@ -154,60 +154,118 @@ printList([H | L]) :-
 %   - returns list MvList of all legal moves Plyr can make in State
 %
 moves(Plyr, State, MvList) :-
-    getStones(State, Plyr, Stones),
-    checkMoves(Plyr, State, Stones, List),
+    checkMoves(Plyr, State, [0, 0], List),
     sort(List, MvList).
 
-checkMoves(_, _, [], []).
-checkMoves(Plyr, State, [Stone, Stones], Return) :-
-    (checkValidMove(Plyr, State, Stone) ->
-        checkMoves(Plyr, State, Stones, Return1),
-        append(Return1, Stone, Return)
+% Find all moves in the state
+checkMoves(_, _, [_,6], []).
+checkMoves(Plyr, State, [X, Y], Return) :-
+    X < 6,
+    Y < 6,
+    NextY is Y + 1,
+    checkMovesRow(Plyr, State, [X, Y], RecReturn), 
+    checkMoves(Plyr, State, [X, NextY], RecReturn2),
+    append(RecReturn2, RecReturn, Return).
+
+% Find all possible moves in a row       
+checkMovesRow(_, _, [6, _], []).
+checkMovesRow(Plyr, State, [X, Y], Return) :-
+    X < 6,
+    NextX is X + 1,
+    (validMove(Plyr, State, [X, Y]) ->
+        checkMovesRow(Plyr, State, [NextX, Y], RecReturn),
+        append(RecReturn, [[X, Y]], Return)
     ;
-        checkMoves(Plyr, State, Stones, Return)
+        checkMovesRow(Plyr, State, [NextX, Y], Return)
     ).
 
-        
+% DO NOT CHANGE THIS BLOCK OF COMMENTS.
+%
+%%%%%%%%%%%%%%nextState(Plyr,Move,State,NewState,NextPlyr)%%%%%%%%%%%%%%%%%%%%
+%% 
+%% define nextState(Plyr,Move,State,NewState,NextPlyr). 
+%   - given that Plyr makes Move in State, it determines NewState (i.e. the next 
+%     state) and NextPlayer (i.e. the next player who will move).
+%
+nextState(Plyr, Move, State, NewState, NextPlyr) :-
+    nextPlayer(Plyr, NextPlyr),
+    flipS(Plyr, Move, State, StateS),
+    flipSW(Plyr, Move, StateS, StateSW),
+    flipW(Plyr, Move, StateSW, StateW),
+    flipNW(Plyr, Move, StateW, StateNW),
+    flipN(Plyr, Move, StateNW, StateN),
+    flipNE(Plyr, Move, StateN, StateNE),
+    flipE(Plyr, Move, StateNE, StateE),
+    flipSE(Plyr, Move, StateE, NewState).
 
-% Check if player is at position
-playerAtPos(Plyr, State, [X, Y]) :-
-    get(State, [X, Y], Val),
-    Plyr = Val.
+nextPlayer(1,2).
+nextPlayer(2,1).
 
-checkConstraints(X, Y) :-
-    X >= 0,
-    X < 6,
-    Y >= 0,
-    Y < 6.
+flip(Plyr, Coord, State, NewState, _) :-
+    playerAtPos(Plyr, State, Coord),
+    NewState = State.
+flip(Plyr, [X, Y], State, NewState, [DeltaX, DeltaY]) :-
+    NextX is X + DeltaX,
+    NextY is Y + DeltaY,
+    otherPlayerAtPos(Plyr, State, [X, Y]),
+    set(State, SetState, [X, Y], Plyr),
+    flip(Plyr, [NextX, NextY], SetState, NewState, [DeltaX, DeltaY]).
 
-deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]) :-
-    NewX is X + DeltaX,
-    NewY is Y + DeltaY,
-    checkConstraints(NewX, NewY).
+flipS(Plyr, [X, Y], State, NewState) :-
+    (validMoveFromS(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        SY is Y + 1,
+        flip(Plyr, [X, SY], NextState, NewState, [0,1])
+    ;
+        NewState = State
+    ).
 
-% Check if other player is at position
-otherPlayerAtPos(Plyr, State, [X, Y]) :-
-    get(State, [X, Y], Val),
-    Val \= Plyr,
-    Val \= '.'.
+flipSW(Plyr, Move, State, NewState) :-
+    (validMoveFromSW(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        SWX is X - 1,
+        SWY is Y + 1,
+        flip(Plyr, [SWX, SWY], NextState, NewState, [-1, 1])
+    ;
+        NewState = State
+    ).
 
-emptySquare(State, [X, Y]) :-
-    get(State, [X, Y], Val),
-    Val = '.'.
+flipW(Plyr, Move, State, NewState) :-
+    (validMoveFromW(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        WX is X - 1,
+        flip(Plyr, [WX, Y], NextState, NewState, [-1,0])
+    ;
+        NewState = State
+    ).
 
-% Checks if a move is possible from direction X
-canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
-    deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
-    deltaPoints([NewX, NewY], [DeltaX, DeltaY], [NewX2, NewY2]),
-    otherPlayerAtPos(Plyr, State, [NewX, NewY]),
-    playerAtPos(Plyr, State, [NewX2, NewY2]).
-canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
-    deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
-    otherPlayerAtPos(Plyr, State, [NewX, NewY]),
-    canMove(Plyr, State, [NewX, NewY], [DeltaX, DeltaY]).
+flipNW(Plyr, Move, State, NewState) :-
+    (validMoveFromNW(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        NWX is X - 1,
+        NWY is Y - 1,
+        flip(Plyr, [NWX, NWY], NextState, NewState, [-1, -1])
+    ;
+        NewState = State
+    ).
 
-% Check if [X, Y] is valid
-checkValidMove(Plyr, State, [X, Y]) :-
+
+flipN(Plyr, Move, State, NewState).
+
+flipNE(Plyr, Move, State, NewState).
+
+flipE(Plyr, Move, State, NewState).
+
+flipSE(Plyr, Move, State, NewState).
+
+
+% DO NOT CHANGE THIS BLOCK OF COMMENTS.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%validmove(Plyr,State,Proposed)%%%%%%%%%%%%%%%%%%%%
+%% 
+%% define validmove(Plyr,State,Proposed). 
+%   - true if Proposed move by Plyr is valid at State.
+validMove(Plyr, State, [X, Y]) :-
     emptySquare(State, [X, Y]),
     (
         validMoveFromS(Plyr, State, [X, Y]);
@@ -249,29 +307,42 @@ validMoveFromNE(Plyr, State, [X, Y]) :-
 validMoveFromE(Plyr, State, [X, Y]) :-
     canMove(Plyr, State, [X, Y], [1, 0]). 
 
-% DO NOT CHANGE THIS BLOCK OF COMMENTS.
-%
-%%%%%%%%%%%%%%nextState(Plyr,Move,State,NewState,NextPlyr)%%%%%%%%%%%%%%%%%%%%
-%% 
-%% define nextState(Plyr,Move,State,NewState,NextPlyr). 
-%   - given that Plyr makes Move in State, it determines NewState (i.e. the next 
-%     state) and NextPlayer (i.e. the next player who will move).
-%
+% Checks if a move is possible from direction X
+canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
+    deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
+    deltaPoints([NewX, NewY], [DeltaX, DeltaY], [NewX2, NewY2]),
+    otherPlayerAtPos(Plyr, State, [NewX, NewY]),
+    playerAtPos(Plyr, State, [NewX2, NewY2]).
+canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
+    deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
+    otherPlayerAtPos(Plyr, State, [NewX, NewY]),
+    canMove(Plyr, State, [NewX, NewY], [DeltaX, DeltaY]).
 
+% Check if player is at position
+playerAtPos(Plyr, State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Plyr = Val.
 
+checkConstraints(X, Y) :-
+    X >= 0,
+    X < 6,
+    Y >= 0,
+    Y < 6.
 
+deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]) :-
+    NewX is X + DeltaX,
+    NewY is Y + DeltaY,
+    checkConstraints(NewX, NewY).
 
+% Check if other player is at position
+otherPlayerAtPos(Plyr, State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Val \= Plyr,
+    Val \= '.'.
 
-% DO NOT CHANGE THIS BLOCK OF COMMENTS.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%validmove(Plyr,State,Proposed)%%%%%%%%%%%%%%%%%%%%
-%% 
-%% define validmove(Plyr,State,Proposed). 
-%   - true if Proposed move by Plyr is valid at State.
-
-
-
-
+emptySquare(State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Val = '.'.
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
