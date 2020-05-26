@@ -105,6 +105,7 @@ winner(State, Plyr) :-
 %% define tie(State) here. 
 %    - true if terminal State is a "tie" (no winner) 
 tie(State) :-
+    terminal(State),
     calculateStones(State, 1, P1Stones),
     calculateStones(State, 2, P2Stones),
     P1Stones = P2Stones.
@@ -153,10 +154,100 @@ printList([H | L]) :-
 %   - returns list MvList of all legal moves Plyr can make in State
 %
 moves(Plyr, State, MvList) :-
-    MvList = [].
+    getStones(State, Plyr, Stones),
+    checkMoves(Plyr, State, Stones, List),
+    sort(List, MvList).
 
+checkMoves(_, _, [], []).
+checkMoves(Plyr, State, [Stone, Stones], Return) :-
+    (checkValidMove(Plyr, State, Stone) ->
+        checkMoves(Plyr, State, Stones, Return1),
+        append(Return1, Stone, Return)
+    ;
+        checkMoves(Plyr, State, Stones, Return)
+    ).
 
+        
 
+% Check if player is at position
+playerAtPos(Plyr, State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Plyr = Val.
+
+checkConstraints(X, Y) :-
+    X >= 0,
+    X < 6,
+    Y >= 0,
+    Y < 6.
+
+deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]) :-
+    NewX is X + DeltaX,
+    NewY is Y + DeltaY,
+    checkConstraints(NewX, NewY).
+
+% Check if other player is at position
+otherPlayerAtPos(Plyr, State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Val \= Plyr,
+    Val \= '.'.
+
+emptySquare(State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Val = '.'.
+
+% Checks if a move is possible from direction X
+canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
+    deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
+    deltaPoints([NewX, NewY], [DeltaX, DeltaY], [NewX2, NewY2]),
+    otherPlayerAtPos(Plyr, State, [NewX, NewY]),
+    playerAtPos(Plyr, State, [NewX2, NewY2]).
+canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
+    deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
+    otherPlayerAtPos(Plyr, State, [NewX, NewY]),
+    canMove(Plyr, State, [NewX, NewY], [DeltaX, DeltaY]).
+
+% Check if [X, Y] is valid
+checkValidMove(Plyr, State, [X, Y]) :-
+    emptySquare(State, [X, Y]),
+    (
+        validMoveFromS(Plyr, State, [X, Y]);
+        validMoveFromSW(Plyr, State, [X, Y]);
+        validMoveFromW(Plyr, State, [X, Y]);
+        validMoveFromNW(Plyr, State, [X, Y]);
+        validMoveFromN(Plyr, State, [X, Y]);
+        validMoveFromNE(Plyr, State, [X, Y]);
+        validMoveFromE(Plyr, State, [X, Y]);
+        validMoveFromSE(Plyr, State, [X, Y]);
+        validMoveFromS(Plyr, State, [X, Y])
+    ).
+
+% Check if the move is valid from any of X directions
+% First by checking if the other player has its square at next pos
+% then by checking recursively that they have more stones in that dir
+% Stops when it finds that the player has a stone somewhere.
+validMoveFromSE(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [1, 1]).
+
+validMoveFromS(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [0, 1]).
+
+validMoveFromSW(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [-1, 1]).
+
+validMoveFromW(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [-1, 0]).
+
+validMoveFromNW(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [-1, -1]).
+
+validMoveFromN(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [0, -1]).
+
+validMoveFromNE(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [1, -1]).
+
+validMoveFromE(Plyr, State, [X, Y]) :-
+    canMove(Plyr, State, [X, Y], [1, 0]). 
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -320,6 +411,30 @@ setInList( [Element|RestList], [Element|NewRestList], Index, Value) :-
 	Index > 0, 
 	Index1 is Index-1, 
 	setInList( RestList, NewRestList, Index1, Value). 
+
+% Get all stone locations for a player
+% I'm not proud of this, but it works
+getStones(State, Plyr, Stones) :-
+    getStonesHelper(State, Plyr, 0, Stones).
+
+getStonesHelper([],_,_,[]).
+getStonesHelper([Row|List], Plyr, Y, Return) :-
+    NewY is Y + 1,
+    getStonesInRow(Row, Plyr, 0, Y, RowReturn),
+    getStonesHelper(List, Plyr, NewY, RecReturn),
+    append(RecReturn, RowReturn, Return).
+
+% Get stones in a row
+getStonesInRow([], _, _, _, []).
+getStonesInRow([Val|Row], Plyr, X, Y, Return) :- 
+    NewX is X + 1,
+    ((Val = Plyr) -> 
+        getStonesInRow(Row, Plyr, NewX, Y, List), 
+        append(List, [[X, Y]], Return)
+    ;  
+        getStonesInRow(Row, Plyr, NewX, Y, List),
+        append(List, [], Return)
+    ).
 
 % Calculate Number of stones for a Player in State
 calculateStones([],_,0).
