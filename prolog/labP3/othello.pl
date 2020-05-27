@@ -14,7 +14,7 @@
 %:- ensure_loaded('play.pl').
 :- ensure_loaded('testboards.pl').
 :- ensure_loaded('stupid.pl').
-%:- ensure_loaded('rndBoard.pl').
+:- ensure_loaded('rndBoard.pl').
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -81,10 +81,12 @@ initBoard([ [.,.,.,.,.,.],
 %%% Using initBoard define initialize(InitialState,InitialPlyr). 
 %%%  holds iff InitialState is the initial state and 
 %%%  InitialPlyr is the player who moves first. 
-initialize(InitialState, InitialPlyr) :-
-    InitialState = Board,
-    initBoard(Board),
-    InitialPlyr = 1.
+
+initialize(Board, 1) :- initBoard(Board).
+%initialize(Board, 1) :- testBoard1(Board).
+%initialize(Board, 1) :- testBoard2(Board).
+%initialize(Board, 1) :- testBoard3(Board).
+%initialize(Board, 1) :- rndBoardXYZ(Board).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -383,6 +385,14 @@ h(State, Val) :-
     calculateStones(State, 1, P1Score),
     calculateStones(State, 2, P2Score),
     Val is P2Score - P1Score.
+
+h(State, Val) :-
+    (winner(State, 1) ->
+        Val = -39
+    ;
+        Val = 39
+    ).
+
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
