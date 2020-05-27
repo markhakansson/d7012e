@@ -205,8 +205,7 @@ flip(Plyr, Coord, State, NewState, _) :-
     playerAtPos(Plyr, State, Coord),
     NewState = State.
 flip(Plyr, [X, Y], State, NewState, [DeltaX, DeltaY]) :-
-    NextX is X + DeltaX,
-    NextY is Y + DeltaY,
+    deltaPoints([X, Y], [DeltaX, DeltaY], [NextX, NextY]),
     otherPlayerAtPos(Plyr, State, [X, Y]),
     set(State, SetState, [X, Y], Plyr),
     flip(Plyr, [NextX, NextY], SetState, NewState, [DeltaX, DeltaY]).
@@ -214,50 +213,75 @@ flip(Plyr, [X, Y], State, NewState, [DeltaX, DeltaY]) :-
 flipS(Plyr, [X, Y], State, NewState) :-
     (validMoveFromS(Plyr, State, [X, Y]) ->
         set(State, NextState, [X, Y], Plyr),
-        SY is Y + 1,
-        flip(Plyr, [X, SY], NextState, NewState, [0,1])
+        deltaPoints([X, Y], [0, 1], [SX, SY]),
+        flip(Plyr, [SX, SY], NextState, NewState, [0,1])
     ;
         NewState = State
     ).
 
-flipSW(Plyr, Move, State, NewState) :-
+flipSW(Plyr, [X, Y], State, NewState) :-
     (validMoveFromSW(Plyr, State, [X, Y]) ->
         set(State, NextState, [X, Y], Plyr),
-        SWX is X - 1,
-        SWY is Y + 1,
+        deltaPoints([X, Y], [-1, 1], [SWX, SWY]),
         flip(Plyr, [SWX, SWY], NextState, NewState, [-1, 1])
     ;
         NewState = State
     ).
 
-flipW(Plyr, Move, State, NewState) :-
+flipW(Plyr, [X, Y], State, NewState) :-
     (validMoveFromW(Plyr, State, [X, Y]) ->
         set(State, NextState, [X, Y], Plyr),
-        WX is X - 1,
-        flip(Plyr, [WX, Y], NextState, NewState, [-1,0])
+        deltaPoints([X, Y], [-1, 0], [WX, WY]),
+        flip(Plyr, [WX, WY], NextState, NewState, [-1,0])
     ;
         NewState = State
     ).
 
-flipNW(Plyr, Move, State, NewState) :-
+flipNW(Plyr, [X, Y], State, NewState) :-
     (validMoveFromNW(Plyr, State, [X, Y]) ->
         set(State, NextState, [X, Y], Plyr),
-        NWX is X - 1,
-        NWY is Y - 1,
+        deltaPoints([X, Y], [-1, -1], [NWX, NWY]),
         flip(Plyr, [NWX, NWY], NextState, NewState, [-1, -1])
     ;
         NewState = State
     ).
 
 
-flipN(Plyr, Move, State, NewState).
+flipN(Plyr, [X, Y], State, NewState) :-
+    (validMoveFromN(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        deltaPoints([X, Y], [0, -1], [NX, NY]),
+        flip(Plyr, [NX, NY], NextState, NewState, [0, - 1])
+    ;
+        NewState = State
+    ).
 
-flipNE(Plyr, Move, State, NewState).
+flipNE(Plyr, [X, Y], State, NewState) :-
+    (validMoveFromNE(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        deltaPoints([X, Y], [1, -1], [NEX, NEY]),
+        flip(Plyr, [NEX, NEY], NextState, NewState, [1, -1])
+    ;
+        NewState = State
+    ).
 
-flipE(Plyr, Move, State, NewState).
+flipE(Plyr, [X, Y], State, NewState) :-
+    (validMoveFromE(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        deltaPoints([X, Y], [1, 0], [EX, EY]),
+        flip(Plyr, [EX, EY], NextState, NewState, [1, 0])
+    ;
+        NewState = State
+    ).
 
-flipSE(Plyr, Move, State, NewState).
-
+flipSE(Plyr, [X, Y], State, NewState) :-
+    (validMoveFromSE(Plyr, State, [X, Y]) ->
+        set(State, NextState, [X, Y], Plyr),
+        deltaPoints([X, Y], [1, 1], [SEX, SEY]),
+        flip(Plyr, [SEX, SEY], NextState, NewState, [1, 1])
+    ;
+        NewState = State
+    ).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -318,31 +342,6 @@ canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
     otherPlayerAtPos(Plyr, State, [NewX, NewY]),
     canMove(Plyr, State, [NewX, NewY], [DeltaX, DeltaY]).
 
-% Check if player is at position
-playerAtPos(Plyr, State, [X, Y]) :-
-    get(State, [X, Y], Val),
-    Plyr = Val.
-
-checkConstraints(X, Y) :-
-    X >= 0,
-    X < 6,
-    Y >= 0,
-    Y < 6.
-
-deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]) :-
-    NewX is X + DeltaX,
-    NewY is Y + DeltaY,
-    checkConstraints(NewX, NewY).
-
-% Check if other player is at position
-otherPlayerAtPos(Plyr, State, [X, Y]) :-
-    get(State, [X, Y], Val),
-    Val \= Plyr,
-    Val \= '.'.
-
-emptySquare(State, [X, Y]) :-
-    get(State, [X, Y], Val),
-    Val = '.'.
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -520,3 +519,29 @@ calcStonesInRow(Row, Plyr, Number) :-
     include(=(Plyr), Row, List),
     length(List, Number).
 
+% Check if player is at position
+playerAtPos(Plyr, State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Plyr = Val.
+
+% Check that the X and Y are within the board
+checkConstraints(X, Y) :-
+    X >= 0,
+    X < 6,
+    Y >= 0,
+    Y < 6.
+
+deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]) :-
+    NewX is X + DeltaX,
+    NewY is Y + DeltaY,
+    checkConstraints(NewX, NewY).
+
+% Check if other player is at position
+otherPlayerAtPos(Plyr, State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Val \= Plyr,
+    Val \= '.'.
+
+emptySquare(State, [X, Y]) :-
+    get(State, [X, Y], Val),
+    Val = '.'.
