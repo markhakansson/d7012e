@@ -12,7 +12,7 @@
 
 %do not change the follwoing line!
 :- ensure_loaded('play.pl').
-
+:- ensure_loaded('testboards.pl').
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -155,7 +155,13 @@ printList([H | L]) :-
 %
 moves(Plyr, State, MvList) :-
     checkMoves(Plyr, State, [0, 0], List),
-    sort(List, MvList).
+    sort(List, SortedList),
+    length(SortedList, Length),
+    ((Length = 0) -> 
+        MvList = [n]
+    ;
+        MvList = SortedList
+    ).
 
 % Find all moves in the state
 checkMoves(_, _, [_,6], []).
@@ -172,7 +178,7 @@ checkMovesRow(_, _, [6, _], []).
 checkMovesRow(Plyr, State, [X, Y], Return) :-
     X < 6,
     NextX is X + 1,
-    (validMove(Plyr, State, [X, Y]) ->
+    (validmove(Plyr, State, [X, Y]) ->
         checkMovesRow(Plyr, State, [NextX, Y], RecReturn),
         append(RecReturn, [[X, Y]], Return)
     ;
@@ -289,7 +295,7 @@ flipSE(Plyr, [X, Y], State, NewState) :-
 %% 
 %% define validmove(Plyr,State,Proposed). 
 %   - true if Proposed move by Plyr is valid at State.
-validMove(Plyr, State, [X, Y]) :-
+validmove(Plyr, State, [X, Y]) :-
     emptySquare(State, [X, Y]),
     (
         validMoveFromS(Plyr, State, [X, Y]);
@@ -354,10 +360,19 @@ canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
 %   NOTE2. If State is not terminal h should be an estimate of
 %          the value of state (see handout on ideas about
 %          good heuristics.
+h(State, Val) :-
+    tie(State),
+    Val = 0.
 
+h(State, Val) :-
+    \+terminal(State),
+    Val = 0.
 
-
-
+h(State, Val) :-
+    terminal(State),
+    calculateStones(State, 1, P1Score),
+    calculateStones(State, 2, P2Score),
+    Val is P2Score - P1Score.
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -366,10 +381,7 @@ canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
 %% define lowerBound(B).  
 %   - returns a value B that is less than the actual or heuristic value
 %     of all states.
-
-
-
-
+lowerBound(-50).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -378,10 +390,7 @@ canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
 %% define upperBound(B). 
 %   - returns a value B that is greater than the actual or heuristic value
 %     of all states.
-
-
-
-
+upperBound(50).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
