@@ -11,8 +11,10 @@
 
 
 %do not change the follwoing line!
-:- ensure_loaded('play.pl').
+%:- ensure_loaded('play.pl').
 :- ensure_loaded('testboards.pl').
+:- ensure_loaded('stupid.pl').
+%:- ensure_loaded('rndBoard.pl').
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -96,7 +98,11 @@ winner(State, Plyr) :-
     calculateStones(State, 1, P1Stones),
     calculateStones(State, 2, P2Stones),
     P1Stones \= P2Stones,
-    ((P1Stones < P2Stones) -> Plyr = 1; Plyr = 2).
+    ((P1Stones < P2Stones) -> 
+        Plyr = 1
+    ; 
+        Plyr = 2
+    ).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -108,7 +114,7 @@ tie(State) :-
     terminal(State),
     calculateStones(State, 1, P1Stones),
     calculateStones(State, 2, P2Stones),
-    P1Stones = P2Stones.
+    P1Stones == P2Stones.
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -119,11 +125,8 @@ tie(State) :-
 terminal(State) :-
     moves(1, State, P1Moves),
     moves(2, State, P2Moves),
-    length(P1Moves, L1),
-    length(P2Moves, L2),
-    L1 = 0,
-    L2 = 0.
-
+    member(n, P1Moves),
+    member(n, P2Moves).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -157,14 +160,14 @@ moves(Plyr, State, MvList) :-
     checkMoves(Plyr, State, [0, 0], List),
     sort(List, SortedList),
     length(SortedList, Length),
-    ((Length = 0) -> 
+    ((Length == 0) -> 
         MvList = [n]
     ;
         MvList = SortedList
     ).
 
 % Find all moves in the state
-checkMoves(_, _, [_,6], []).
+checkMoves(_, _, [_,6], []) :- !.
 checkMoves(Plyr, State, [X, Y], Return) :-
     X < 6,
     Y < 6,
@@ -195,6 +198,10 @@ checkMovesRow(Plyr, State, [X, Y], Return) :-
 %
 nextState(Plyr, Move, State, NewState, NextPlyr) :-
     nextPlayer(Plyr, NextPlyr),
+    Move = n,
+    NewState = State.
+
+nextState(Plyr, Move, State, NewState, NextPlyr) :-
     flipS(Plyr, Move, State, StateS),
     flipSW(Plyr, Move, StateS, StateSW),
     flipW(Plyr, Move, StateSW, StateW),
@@ -202,11 +209,13 @@ nextState(Plyr, Move, State, NewState, NextPlyr) :-
     flipN(Plyr, Move, StateNW, StateN),
     flipNE(Plyr, Move, StateN, StateNE),
     flipE(Plyr, Move, StateNE, StateE),
-    flipSE(Plyr, Move, StateE, NewState).
+    flipSE(Plyr, Move, StateE, NewState),
+    nextPlayer(Plyr, NextPlyr).
 
 nextPlayer(1,2).
 nextPlayer(2,1).
 
+% Generalized function for use with flipX
 flip(Plyr, Coord, State, NewState, _) :-
     playerAtPos(Plyr, State, Coord),
     NewState = State.
@@ -216,6 +225,7 @@ flip(Plyr, [X, Y], State, NewState, [DeltaX, DeltaY]) :-
     set(State, SetState, [X, Y], Plyr),
     flip(Plyr, [NextX, NextY], SetState, NewState, [DeltaX, DeltaY]).
 
+% Flips stones towards a direction X if the move is valid
 flipS(Plyr, [X, Y], State, NewState) :-
     (validMoveFromS(Plyr, State, [X, Y]) ->
         set(State, NextState, [X, Y], Plyr),
@@ -295,6 +305,9 @@ flipSE(Plyr, [X, Y], State, NewState) :-
 %% 
 %% define validmove(Plyr,State,Proposed). 
 %   - true if Proposed move by Plyr is valid at State.
+validmove(Plyr, State, n) :-
+    moves(Plyr, State, Moves),
+    member(n, Moves).
 validmove(Plyr, State, [X, Y]) :-
     emptySquare(State, [X, Y]),
     (
@@ -305,8 +318,7 @@ validmove(Plyr, State, [X, Y]) :-
         validMoveFromN(Plyr, State, [X, Y]);
         validMoveFromNE(Plyr, State, [X, Y]);
         validMoveFromE(Plyr, State, [X, Y]);
-        validMoveFromSE(Plyr, State, [X, Y]);
-        validMoveFromS(Plyr, State, [X, Y])
+        validMoveFromSE(Plyr, State, [X, Y])
     ).
 
 % Check if the move is valid from any of X directions
@@ -342,7 +354,8 @@ canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
     deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
     deltaPoints([NewX, NewY], [DeltaX, DeltaY], [NewX2, NewY2]),
     otherPlayerAtPos(Plyr, State, [NewX, NewY]),
-    playerAtPos(Plyr, State, [NewX2, NewY2]).
+    playerAtPos(Plyr, State, [NewX2, NewY2]),
+    !.
 canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
     deltaPoints([X, Y], [DeltaX, DeltaY], [NewX, NewY]),
     otherPlayerAtPos(Plyr, State, [NewX, NewY]),
@@ -360,16 +373,13 @@ canMove(Plyr, State, [X, Y], [DeltaX, DeltaY]) :-
 %   NOTE2. If State is not terminal h should be an estimate of
 %          the value of state (see handout on ideas about
 %          good heuristics.
+% h for tie states
 h(State, Val) :-
     tie(State),
     Val = 0.
 
+% h for non-terminal and terminal states excl ties
 h(State, Val) :-
-    \+terminal(State),
-    Val = 0.
-
-h(State, Val) :-
-    terminal(State),
     calculateStones(State, 1, P1Score),
     calculateStones(State, 2, P2Score),
     Val is P2Score - P1Score.
@@ -381,7 +391,7 @@ h(State, Val) :-
 %% define lowerBound(B).  
 %   - returns a value B that is less than the actual or heuristic value
 %     of all states.
-lowerBound(-50).
+lowerBound(-40).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -390,7 +400,7 @@ lowerBound(-50).
 %% define upperBound(B). 
 %   - returns a value B that is greater than the actual or heuristic value
 %     of all states.
-upperBound(50).
+upperBound(40).
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
 %
@@ -554,3 +564,41 @@ otherPlayerAtPos(Plyr, State, [X, Y]) :-
 emptySquare(State, [X, Y]) :-
     get(State, [X, Y], Val),
     Val = '.'.
+
+%% Tests
+test1 :-
+    testBoard1(B1),
+    moves(1, B1, L1),
+    moves(2, B1, L2),
+    write("P1: "),
+    writeln(L1),
+    write("P2: "),
+    writeln(L2).
+
+testStateBoard1(Plyr, Move) :-
+    testBoard1(B1),
+    nextState(Plyr, Move, B1, NextState, _),
+    showState(B1),
+    writeln("------------"),
+    showState(NextState).
+
+test2 :-
+    testBoard2(B2),
+    moves(1, B2, L1),
+    moves(2, B2, L2),
+    write("P1: "),
+    writeln(L1),
+    write("P2: "),
+    writeln(L2).
+
+test3 :-
+    testBoard3(B3),
+    moves(1, B3, L1),
+    moves(2, B3, L2),
+    write("P1: "),
+    writeln(L1),
+    write("P2: "),
+    writeln(L2).
+
+
+
