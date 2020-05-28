@@ -11,9 +11,9 @@
 
 
 %do not change the follwoing line!
-%:- ensure_loaded('play.pl').
+:- ensure_loaded('play.pl').
 :- ensure_loaded('testboards.pl').
-:- ensure_loaded('stupid.pl').
+%:- ensure_loaded('stupid.pl').
 :- ensure_loaded('rndBoard.pl').
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
@@ -386,12 +386,14 @@ h(State, Val) :-
     calculateStones(State, 2, P2Score),
     Val is P2Score - P1Score.
 
+% Winning states
 h(State, Val) :-
-    (winner(State, 1) ->
-        Val = -39
-    ;
-        Val = 39
-    ).
+    winner(State, 1),
+    Val = -39.
+
+h(State, Val) :-
+    winner(State, 2),
+    Val = 39.
 
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
